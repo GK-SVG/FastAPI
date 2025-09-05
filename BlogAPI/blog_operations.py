@@ -3,8 +3,9 @@ from sqlalchemy.orm import Session
 import models, schemas
 
 
-def get_blogs(db: Session):
-    return db.query(models.Blog).all()
+def get_blogs(db: Session, limit: int = 10, start: int = 1, published: bool = True):
+    blogs = db.query(models.Blog).filter(models.Blog.published == published).offset(start - 1).limit(limit).all()
+    return blogs
 
 
 def get_blog(db: Session, blog_id):
