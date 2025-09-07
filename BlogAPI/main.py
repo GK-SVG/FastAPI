@@ -1,6 +1,6 @@
 import uuid
-from fastapi import FastAPI, Depends, HTTPException
-from schemas import BlogResponse, BlogCreate
+from fastapi import FastAPI, Depends, HTTPException, status
+from schemas import BlogResponse, BlogCreate, BlogBase
 from database import get_db
 import blog_operations 
 from sqlalchemy.orm import Session
@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 app = FastAPI()
 
-@app.post("/blog/create/", response_model=BlogResponse)
+@app.post("/blog/create/", response_model=BlogResponse, status_code=status.HTTP_201_CREATED)
 def create_blog(blog: BlogCreate, db: Session = Depends(get_db)):
     return blog_operations.create_blog(db, blog)
 
@@ -18,7 +18,7 @@ def get_blogs(limit:int = 10, start:int = 1, published:bool = True, db: Session 
     return blog_operations.get_blogs(db, limit, start, published)
 
 
-@app.get("/blog/{blog_id}/", response_model=BlogResponse)
+@app.get("/blog/{blog_id}/", response_model=BlogBase)
 def get_blog(blog_id: str, db: Session = Depends(get_db)):
     try:
         blog_uuid = uuid.UUID(blog_id)

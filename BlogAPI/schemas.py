@@ -2,7 +2,24 @@ from pydantic import BaseModel
 from typing import Optional
 from uuid import UUID
 
+# User Schemas
+class UserBase(BaseModel):
+    username: str
+    email: str
+    full_name: Optional[str] = None
+    is_active: Optional[bool] = True
 
+class CreateUser(UserBase):
+    password: str
+
+class UserResponse(UserBase):
+    id: UUID
+
+    class Config:
+        orm_mode = True
+
+
+# Blog Schemas
 class BlogBase(BaseModel):
     title: str
     body: str
@@ -10,7 +27,6 @@ class BlogBase(BaseModel):
 
 class BlogCreate(BlogBase):
     pass
-
 
 class BlogResponse(BlogBase):
     id: UUID
