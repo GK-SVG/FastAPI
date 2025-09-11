@@ -9,7 +9,7 @@ class UserBase(BaseModel):
     full_name: Optional[str] = None
     is_active: Optional[bool] = True
 
-class CreateUser(UserBase):
+class UserCreate(UserBase):
     password: str
 
 class UserResponse(UserBase):
