@@ -1,12 +1,14 @@
 import uuid
 from fastapi import FastAPI, Depends, HTTPException, status
-from schemas import BlogResponse, BlogCreate, BlogBase, UserResponse, UserCreate
+from schemas import BlogResponse, BlogCreate, BlogBase, UserResponse, UserCreate, LoginRequest, TokenResponse
 from database import get_db
 import blog_crud 
 from sqlalchemy.orm import Session
-from utils import get_user_by_email, get_user_by_username, get_password_hash
+from utils import get_user_by_email, get_user_by_username, get_password_hash, verify_password, get_password_hash, create_access_token
 import models
 from sqlalchemy.exc import IntegrityError
+from config import settings
+from datetime import timedelta
 
 
 app = FastAPI()
@@ -46,8 +48,8 @@ def delete_blog(blog_id: str, db: Session = Depends(get_db)):
 
 
 # -----------------------------------------------------User APIs------------------------------------------------
-@app.post("/user/create/", response_model=UserResponse)
-def create_user(user: UserCreate, db: Session = Depends(get_db)):
+@app.post("/signup/", response_model=UserResponse)
+def signup(user: UserCreate, db: Session = Depends(get_db)):
     # Check existing username
     if get_user_by_username(db, user.username):
         raise HTTPException(status_code=400, detail="Username already registered")
@@ -71,6 +73,25 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=400, detail="Username or Email already exists")
+
+
+@app.get("/login/", response_model=TokenResponse)
+def login(request: LoginRequest, db: Session = Depends(get_db)):
+    print("request--", request)
+    user = db.query(models.User).filter(models.User.username == request.username).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password")
+    
+    if not verify_password(request.password, user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password")
+    
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
+    
+    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+    token = create_access_token(data={"sub": str(user.id)}, expires_delta=access_token_expires)
+    
+    return {"access_token": token, "token_type": "bearer"}
 
 
 @app.get("/user/{user_id}/", response_model=UserResponse)
